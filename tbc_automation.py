@@ -1,15 +1,15 @@
-import hashlib
-import json
 import os
 import re
-import subprocess
+import json
 import time
 import requests
-from watchdog.events import FileSystemEventHandler
+import hashlib
+import subprocess
 from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.8 (SECURE AUTHENTICATION)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.0 (IPFS & NETLIFY AUTO-SYNC)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
@@ -19,60 +19,47 @@ WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 GITHUB_USERNAME = "vinhvanvo2015-hub"
 GITHUB_REPO_NAME = "thanhtheblackcat-artstudio"
 
-# Lấy các Secret/Token hoàn toàn từ Biến môi trường hệ thống
+# Lấy các Secret/Token từ Biến môi trường hệ thống
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "").strip()
 PINATA_JWT_TOKEN = os.getenv("PINATA_JWT", "").strip()
 
+# Fallback Key Pinata (nếu chưa gán PINATA_JWT trong máy)
+PINATA_API_KEY = os.getenv("PINATA_API_KEY", "3963dfa1130afd34759a").strip()
+PINATA_SECRET_KEY = os.getenv("PINATA_SECRET_KEY", "").strip()
 
 def find_git_executable():
     possible_paths = [
         "git",
         r"C:\Program Files\Git\cmd\git.exe",
         r"C:\Program Files (x86)\Git\cmd\git.exe",
-        os.path.expanduser(r"~\AppData\Local\Programs\Git\cmd\git.exe"),
+        os.path.expanduser(r"~\AppData\Local\Programs\Git\cmd\git.exe")
     ]
     for path in possible_paths:
         try:
-            res = subprocess.run(
-                f'"{path}" --version',
-                shell=True,
-                capture_output=True,
-                text=True,
-            )
+            res = subprocess.run(f'"{path}" --version', shell=True, capture_output=True, text=True)
             if res.returncode == 0:
                 return path
         except Exception:
             continue
     return "git"
 
-
 GIT_CMD = find_git_executable()
-
 
 def ensure_correct_git_remote():
     """Tự động thiết lập Remote URL cho Git Repo."""
-    token = GITHUB_TOKEN
-    if token:
-        correct_url = f"https://{GITHUB_USERNAME}:{token}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
+    if GITHUB_TOKEN:
+        correct_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
     else:
         correct_url = f"https://github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
-
+    
     try:
-        subprocess.run(
-            f'"{GIT_CMD}" remote set-url origin {correct_url}',
-            cwd=PROJECT_WEB_DIR,
-            shell=True,
-            check=True,
-            capture_output=True,
-        )
+        subprocess.run(f'"{GIT_CMD}" remote set-url origin {correct_url}', cwd=PROJECT_WEB_DIR, shell=True, check=True, capture_output=True)
         print(f"[✓] Cấu hình Remote Git thành công!")
     except Exception as e:
         print(f"[-] Lỗi kết nối Git Remote: {str(e)}")
 
-
 class ArtworkPipelineHandler(FileSystemEventHandler):
-
     def __init__(self):
         super().__init__()
         self.processed_folders = set()
@@ -85,21 +72,14 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
 
     def handle_system_event(self, event):
         src_path = event.src_path
-        folder_path = (
-            src_path if event.is_directory else os.path.dirname(src_path)
-        )
+        folder_path = src_path if event.is_directory else os.path.dirname(src_path)
 
-        if folder_path == WATCH_DIRECTORY or not folder_path.startswith(
-            WATCH_DIRECTORY
-        ):
+        if folder_path == WATCH_DIRECTORY or not folder_path.startswith(WATCH_DIRECTORY):
             return
 
-        time.sleep(2)
+        time.sleep(1.5)
 
-        if (
-            os.path.exists(folder_path)
-            and folder_path not in self.processed_folders
-        ):
+        if os.path.exists(folder_path) and folder_path not in self.processed_folders:
             text_file = os.path.join(folder_path, "thong_tin.txt")
             if os.path.exists(text_file):
                 print(f"\n[+] Kích hoạt xử lý tại Folder: {folder_path}")
@@ -111,9 +91,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         image_file = None
 
         for file in os.listdir(folder_path):
-            if file.lower().endswith(
-                (".png", ".jpg", ".jpeg")
-            ) and not file.startswith("web_secured_display"):
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')) and not file.startswith('web_secured_display'):
                 image_file = os.path.join(folder_path, file)
                 break
 
@@ -131,14 +109,10 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             return
 
         print("[*] Đang khởi tạo bản ảnh hiển thị...")
-        processed_image_path = self.activate_arttech_shield(
-            image_file, folder_path
-        )
+        processed_image_path = self.activate_arttech_shield(image_file, folder_path)
 
-        print("[*] Đang tải ảnh lên IPFS...")
-        ipfs_link, ipfs_cid = self.upload_to_pinata_ipfs(
-            processed_image_path, metadata.get("id", "TBC-ART")
-        )
+        print("[*] Đang tải ảnh lên IPFS (Pinata)...")
+        ipfs_link, ipfs_cid = self.upload_to_pinata_ipfs(processed_image_path, metadata.get('id', 'TBC-ART'))
 
         if ipfs_link and ipfs_cid:
             print(f"[✓] XỬ LÝ ẢNH THÀNH CÔNG!")
@@ -147,16 +121,11 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             self.save_ipfs_to_local_text(text_file, ipfs_link, ipfs_cid)
 
             print("[*] Đang cập nhật tệp dữ liệu JSON cho Website...")
-            json_success = self.sync_to_netlify_json(
-                metadata, ipfs_link, ipfs_cid
-            )
+            json_success = self.sync_to_netlify_json(metadata, ipfs_link, ipfs_cid)
 
             if json_success:
-                print(
-                    "[*] Đang tiến hành kích hoạt hiển thị lên Website"
-                    " Netlify..."
-                )
-                self.deploy_to_netlify(metadata.get("title_vi", "Artwork mới"))
+                print("[*] Đang tiến hành kích hoạt hiển thị lên Website Netlify...")
+                self.deploy_to_netlify(metadata.get('title_vi', 'Artwork mới'))
         else:
             print("[-] Không thể xử lý dữ liệu cho tác phẩm.")
             self.processed_folders.discard(folder_path)
@@ -164,35 +133,17 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
     def parse_text_file(self, file_path):
         data = {}
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             if "====================================" in content:
-                content = content.split("====================================")[
-                    0
-                ]
+                content = content.split("====================================")[0]
 
-            fields = [
-                "ID",
-                "Title_VI",
-                "Title_EN",
-                "Medium_VI",
-                "Medium_EN",
-                "Dimensions",
-                "Year",
-                "Price",
-                "Description_VI",
-                "Description_EN",
-            ]
+            fields = ["ID", "Title_VI", "Title_EN", "Medium_VI", "Medium_EN", "Dimensions", "Year", "Price", "Description_VI", "Description_EN"]
             for field in fields:
                 match = re.search(rf"{field}:\s*(.*)", content, re.IGNORECASE)
                 if match:
-                    clean_val = (
-                        match.group(1)
-                        .strip()
-                        .replace("\r", "")
-                        .replace("\n", " ")
-                    )
+                    clean_val = match.group(1).strip().replace('\r', '').replace('\n', ' ')
                     data[field.lower()] = clean_val
             return data
         except Exception as e:
@@ -200,43 +151,51 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             return None
 
     def activate_arttech_shield(self, original_image, folder_path):
-        shielded_image_path = os.path.join(
-            folder_path, "web_secured_display.png"
-        )
-        with open(original_image, "rb") as src, open(
-            shielded_image_path, "wb"
-        ) as dst:
+        shielded_image_path = os.path.join(folder_path, "web_secured_display.png")
+        with open(original_image, 'rb') as src, open(shielded_image_path, 'wb') as dst:
             dst.write(src.read())
         print(f"[✓] Đã tạo tệp ảnh hiển thị: {shielded_image_path}")
         return shielded_image_path
 
     def upload_to_pinata_ipfs(self, image_path, artwork_id):
+        url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+        safe_id = re.sub(r'[^a-zA-Z0-9_-]', '_', str(artwork_id))
+        upload_name = f"{safe_id}_secured_artwork.png"
+
+        # Phương án 1: Sử dụng JWT Token
         if PINATA_JWT_TOKEN:
-            url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
             token = "".join(PINATA_JWT_TOKEN.split())
             headers = {"Authorization": f"Bearer {token}"}
-
             try:
-                safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", str(artwork_id))
-                upload_name = f"{safe_id}_secured_artwork.png"
-
-                with open(image_path, "rb") as f:
-                    files = [("file", (upload_name, f, "image/png"))]
-                    response = requests.post(
-                        url, files=files, headers=headers, timeout=15
-                    )
-
-                    if response.status_code == 200:
-                        response_data = response.json()
-                        cid = response_data["IpfsHash"]
+                with open(image_path, 'rb') as f:
+                    files = [('file', (upload_name, f, 'image/png'))]
+                    res = requests.post(url, files=files, headers=headers, timeout=20)
+                    if res.status_code == 200:
+                        cid = res.json()["IpfsHash"]
                         return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
             except Exception as e:
-                print(f"[-] Lỗi Pinata IPFS: {str(e)}")
+                print(f"[-] Lỗi Pinata JWT: {str(e)}")
 
-        # Backup về đường dẫn local nếu không có token hoặc upload lỗi
+        # Phương án 2: Sử dụng API Key & Secret Key
+        if PINATA_API_KEY and PINATA_SECRET_KEY:
+            headers = {
+                'pinata_api_key': PINATA_API_KEY,
+                'pinata_secret_api_key': PINATA_SECRET_KEY
+            }
+            try:
+                with open(image_path, 'rb') as f:
+                    files = [('file', (upload_name, f, 'image/png'))]
+                    res = requests.post(url, files=files, headers=headers, timeout=20)
+                    if res.status_code == 200:
+                        cid = res.json()["IpfsHash"]
+                        return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
+            except Exception as e:
+                print(f"[-] Lỗi Pinata API Key: {str(e)}")
+
+        # Backup về đường dẫn local nếu không thể kết nối Pinata
         folder_name = os.path.basename(os.path.dirname(image_path))
         web_relative_path = f"./{folder_name}/web_secured_display.png"
-        with open(image_path, "rb") as f:
+        with open(image_path, 'rb') as f:
             file_hash = hashlib.sha256(f.read()).hexdigest()[:16]
         return web_relative_path, f"LOCAL_{file_hash}"
 
@@ -244,7 +203,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         try:
             artworks = []
             if os.path.exists(WEB_DATA_JSON_PATH):
-                with open(WEB_DATA_JSON_PATH, "r", encoding="utf-8") as jf:
+                with open(WEB_DATA_JSON_PATH, 'r', encoding='utf-8') as jf:
                     try:
                         artworks = json.load(jf)
                     except json.JSONDecodeError:
@@ -262,17 +221,13 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
                 "description_vi": metadata.get("description_vi"),
                 "description_en": metadata.get("description_en"),
                 "ipfs_url": ipfs_link,
-                "ipfs_cid": ipfs_cid,
+                "ipfs_cid": ipfs_cid
             }
 
-            artworks = [
-                item
-                for item in artworks
-                if item.get("id") != metadata.get("id")
-            ]
+            artworks = [item for item in artworks if item.get("id") != metadata.get("id")]
             artworks.append(new_entry)
 
-            with open(WEB_DATA_JSON_PATH, "w", encoding="utf-8") as jf:
+            with open(WEB_DATA_JSON_PATH, 'w', encoding='utf-8') as jf:
                 json.dump(artworks, jf, ensure_ascii=False, indent=4)
 
             print(f"[✓] Đã lưu thông tin tác phẩm vào tệp JSON.")
@@ -292,42 +247,24 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
 
         try:
             cwd = PROJECT_WEB_DIR
-            subprocess.run(
-                f'"{GIT_CMD}" add .', cwd=cwd, shell=True, check=True
-            )
-            subprocess.run(
-                f'"{GIT_CMD}" commit -m "Auto-add artwork: {title}"',
-                cwd=cwd,
-                shell=True,
-                capture_output=True,
-            )
-
-            push_res = subprocess.run(
-                f'"{GIT_CMD}" push origin HEAD',
-                cwd=cwd,
-                shell=True,
-                capture_output=True,
-                text=True,
-            )
+            subprocess.run(f'"{GIT_CMD}" add .', cwd=cwd, shell=True, check=True)
+            subprocess.run(f'"{GIT_CMD}" commit -m "Auto-add artwork: {title}"', cwd=cwd, shell=True, capture_output=True)
+            
+            push_res = subprocess.run(f'"{GIT_CMD}" push origin HEAD', cwd=cwd, shell=True, capture_output=True, text=True)
             if push_res.returncode == 0:
-                print(
-                    f"[✓] BẬT ĐÈN XANH: Đã Push dữ liệu thành công lên"
-                    " GitHub/Netlify!"
-                )
+                print(f"[✓] BẬT ĐÈN XANH: Đã Push dữ liệu thành công lên GitHub/Netlify!")
             else:
-                print(
-                    f"[-] Cảnh báo Push: {push_res.stderr.strip()}"
-                )
+                print(f"[-] Cảnh báo Push: {push_res.stderr.strip()}")
         except Exception as e:
             print(f"[-] Lỗi Sync: {str(e)}")
 
     def save_ipfs_to_local_text(self, file_path, ipfs_link, ipfs_cid):
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             if "IPFS_CID:" not in content:
-                with open(file_path, "a", encoding="utf-8") as f:
+                with open(file_path, 'a', encoding='utf-8') as f:
                     f.write(f"\n\n====================================")
                     f.write(f"\nIPFS_CID: {ipfs_cid}")
                     f.write(f"\nIPFS_URL: {ipfs_link}")
@@ -336,7 +273,6 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
                 print("[*] Đường dẫn IPFS đã tồn tại trong thong_tin.txt.")
         except Exception as e:
             print(f"[-] Lỗi ghi file text: {str(e)}")
-
 
 if __name__ == "__main__":
     if not os.path.exists(WATCH_DIRECTORY):
@@ -349,15 +285,9 @@ if __name__ == "__main__":
     observer.schedule(event_handler, path=WATCH_DIRECTORY, recursive=True)
     observer.start()
 
-    print(
-        f"===================================================================="
-    )
-    print(
-        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.8 (SECURE AUTHENTICATION)    "
-    )
-    print(
-        f"===================================================================="
-    )
+    print(f"====================================================================")
+    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.0 (IPFS & NETLIFY SYNC)     ")
+    print(f"====================================================================")
     print(f"[*] Đang chạy ngầm giám sát thư mục: {WATCH_DIRECTORY}\n")
 
     try:
