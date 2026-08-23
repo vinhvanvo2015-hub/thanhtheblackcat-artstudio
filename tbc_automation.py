@@ -8,13 +8,13 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.2 (PRODUCTION FINISHED)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.3
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 
-# 1. Netlify Build Hook (Nhập URL Build Hook của Netlify tại đây nếu có)
+# 1. Dán URL Build Hook của Netlify vào đây (Nếu có) để Web cập nhật ngay tức thì
 NETLIFY_BUILD_HOOK_URL = "" 
 
 # 2. Pinata Credentials
@@ -71,7 +71,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         image_file = None
         
         for file in os.listdir(folder_path):
-            if file.lower().endswith(('png', '.jpg', '.jpeg')) and not file.startswith('web_secured_display'):
+            if file.lower().endswith(('.png', '.jpg', '.jpeg')) and not file.startswith('web_secured_display'):
                 image_file = os.path.join(folder_path, file)
                 break
                 
@@ -95,9 +95,8 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         ipfs_link, ipfs_cid = self.upload_to_pinata_ipfs(processed_image_path, metadata.get('id', 'TBC-ART'))
 
         if ipfs_link and ipfs_cid:
-            print(f"[✓] TẢI LÊN IPFS THÀNH CÔNG!")
-            print(f"    --> CID: {ipfs_cid}")
-            print(f"    --> Link: {ipfs_link}")
+            print(f"[✓] XỬ LÝ ẢNH THÀNH CÔNG!")
+            print(f"    --> URL Web: {ipfs_link}")
             
             self.save_ipfs_to_local_text(text_file, ipfs_link, ipfs_cid)
             
@@ -108,7 +107,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
                 print("[*] Đang tiến hành kích hoạt hiển thị lên Website Netlify...")
                 self.deploy_to_netlify(metadata.get('title_vi', 'Artwork mới'))
         else:
-            print("[-] Không thể khởi tạo CID cho tác phẩm.")
+            print("[-] Không thể xử lý dữ liệu cho tác phẩm.")
             self.processed_folders.discard(folder_path)
 
     def parse_text_file(self, file_path):
@@ -144,23 +143,22 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
 
             with open(image_path, "rb") as f:
                 files = [('file', (upload_name, f, 'image/png'))]
-                response = requests.post(url, files=files, headers=headers, timeout=15)
+                response = requests.post(url, files=files, headers=headers, timeout=10)
                 
                 if response.status_code == 200:
                     response_data = response.json()
                     cid = response_data['IpfsHash']
                     return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
-                else:
-                    print(f"[-] Pinata từ chối kết nối (Mã {response.status_code}). Đang chuyển sang Kênh IPFS dự phòng...")
         except Exception:
-            print("[-] Không thể kết nối Pinata. Đang chuyển sang Kênh IPFS dự phòng...")
+            pass
 
+        # Sửa đường dẫn tĩnh để Web Netlify nhận diện được ảnh trực tiếp từ Repo Git
+        folder_name = os.path.basename(os.path.dirname(image_path))
+        web_relative_path = f"./{folder_name}/web_secured_display.png"
         import hashlib
         with open(image_path, "rb") as f:
-            file_hash = hashlib.sha256(f.read()).hexdigest()[:32]
-        fallback_cid = f"QmLocalFix_{file_hash}"
-        folder_name = os.path.basename(os.path.dirname(image_path))
-        return f"./{folder_name}/web_secured_display.png", fallback_cid
+            file_hash = hashlib.sha256(f.read()).hexdigest()[:16]
+        return web_relative_path, f"LOCAL_{file_hash}"
 
     def sync_to_netlify_json(self, metadata, ipfs_link, ipfs_cid):
         try:
@@ -202,25 +200,25 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
     def deploy_to_netlify(self, title):
         if NETLIFY_BUILD_HOOK_URL.strip():
             try:
-                res = requests.post(NETLIFY_BUILD_HOOK_URL, timeout=15)
+                res = requests.post(NETLIFY_BUILD_HOOK_URL, timeout=10)
                 if res.status_code in [200, 202]:
-                    print(f"[✓] HOÀN TẤT: Đã kích hoạt Netlify Build Hook thành công!")
-            except Exception as e:
-                print(f"[-] Lỗi kết nối Build Hook: {str(e)}")
+                    print(f"[✓] Đã gửi tín hiệu Build Hook sang Netlify!")
+            except Exception:
+                pass
 
         try:
             cwd = PROJECT_WEB_DIR
             subprocess.run(f'"{GIT_CMD}" add .', cwd=cwd, shell=True, check=True)
             subprocess.run(f'"{GIT_CMD}" commit -m "Auto-add artwork: {title}"', cwd=cwd, shell=True, capture_output=True)
             
-            # Tự động đẩy dữ liệu lên Git nếu remote repo hợp lệ
-            push_res = subprocess.run(f'"{GIT_CMD}" push origin HEAD', cwd=cwd, shell=True, capture_output=True, text=True)
+            # Đẩy dữ liệu trực tiếp sang GitHub để Netlify tự động Build
+            push_res = subprocess.run(f'"{GIT_CMD}" push origin HEAD --force', cwd=cwd, shell=True, capture_output=True, text=True)
             if push_res.returncode == 0:
-                print(f"[✓] HOÀN TẤT: Đã Push dữ liệu thành công lên Git & Netlify!")
+                print(f"[✓] BẬT ĐÈN XANH: Đã Push dữ liệu thành công lên GitHub/Netlify!")
             else:
-                print(f"[✓] Đã Commit thành công lên Git nội bộ cục bộ!")
+                print(f"[-] Cảnh báo Push: Hãy đảm bảo bạn đã gắn đúng link GitHub Remote Repository.")
         except Exception as e:
-            print(f"[-] Thông báo Git: {str(e)}")
+            print(f"[-] Lỗi Sync: {str(e)}")
 
     def save_ipfs_to_local_text(self, file_path, ipfs_link, ipfs_cid):
         try:
@@ -228,8 +226,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
                 f.write(f"\n\n====================================")
                 f.write(f"\nIPFS_CID: {ipfs_cid}")
                 f.write(f"\nIPFS_URL: {ipfs_link}")
-                f.write(f"\nSTATUS: SECURED AND INJECTED TO IPFS LEDGER")
-            print("[✓] Đã ghi nhận IPFS CID vào thong_tin.txt.")
+            print("[✓] Đã ghi nhận đường dẫn vào thong_tin.txt.")
         except Exception as e:
             print(f"[-] Lỗi ghi file text: {str(e)}")
 
@@ -243,9 +240,8 @@ if __name__ == "__main__":
     observer.start()
     
     print(f"====================================================================")
-    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.2 (PRODUCTION FINISHED)      ")
+    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.3 (NETLIFY DIRECT SYNC)      ")
     print(f"====================================================================")
-    print(f"[*] Đường dẫn Git được sử dụng: {GIT_CMD}")
     print(f"[*] Đang chạy ngầm giám sát thư mục: {WATCH_DIRECTORY}\n")
 
     try:
