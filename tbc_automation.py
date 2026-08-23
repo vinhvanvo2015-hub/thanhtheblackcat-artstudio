@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.6 (FIXED CID & AUTO PUSH)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.7 (AUTHENTICATION DIRECT FIX)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
@@ -18,6 +18,7 @@ WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 GITHUB_USERNAME = "vinhvanvo2015-hub"
 GITHUB_REPO_NAME = "thanhtheblackcat-artstudio"
 
+# Điền trực tiếp Token hoặc lấy từ biến môi trường
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "").strip()
 
@@ -208,8 +209,8 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             subprocess.run(f'"{GIT_CMD}" add .', cwd=cwd, shell=True, check=True)
             subprocess.run(f'"{GIT_CMD}" commit -m "Auto-add artwork: {title}"', cwd=cwd, shell=True, capture_output=True)
             
-            # Đẩy chính xác lên nhánh master
-            push_res = subprocess.run(f'"{GIT_CMD}" push origin master', cwd=cwd, shell=True, capture_output=True, text=True)
+            # Đẩy dữ liệu với thông số không tương tác để tránh bị treo
+            push_res = subprocess.run(f'"{GIT_CMD}" -c core.askPass= push origin master', cwd=cwd, shell=True, capture_output=True, text=True)
             if push_res.returncode == 0:
                 print(f"[✓] THÀNH CÔNG: Đã đẩy dữ liệu mới lên Web Netlify!")
             else:
@@ -239,7 +240,6 @@ def scan_and_process_existing_folders(handler):
             if os.path.exists(text_file):
                 with open(text_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                # Sửa lỗi lọc: Quét luôn nếu chưa ghi thông tin IPFS_CID
                 if "IPFS_CID:" not in content:
                     print(f"[+] Tìm thấy thư mục tranh mới: {item}")
                     handler.processed_folders.add(item_path)
@@ -252,7 +252,6 @@ if __name__ == "__main__":
     ensure_correct_git_remote()
     event_handler = ArtworkPipelineHandler()
     
-    # Quét cập nhật tự động
     scan_and_process_existing_folders(event_handler)
 
     observer = Observer()
@@ -260,7 +259,7 @@ if __name__ == "__main__":
     observer.start()
 
     print(f"====================================================================")
-    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.6 (AUTO MASTER SYNC)       ")
+    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.7 (AUTHENTICATION FIX)      ")
     print(f"====================================================================")
 
     try:
