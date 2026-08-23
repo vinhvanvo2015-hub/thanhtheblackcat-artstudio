@@ -9,16 +9,18 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.6 (FIX AUTHENTICATION)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.7 (SAFE AUTHENTICATION)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 
-# Cấu hình GitHub - ĐÃ TỰ ĐỘNG NHÚNG TOKEN ĐỂ BỎ QUA ĐĂNG NHẬP
+# Cấu hình GitHub - Tự động đọc từ Biến môi trường hoặc biến tĩnh
 GITHUB_USERNAME = "vinhvanvo2015-hub"
 GITHUB_REPO_NAME = "thanhtheblackcat-artstudio"
-GITHUB_TOKEN = "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"
+
+# Lấy token từ biến môi trường GITHUB_TOKEN để tránh bị GitHub Secret Scanning chặn Push
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "")
 
@@ -55,8 +57,8 @@ GIT_CMD = find_git_executable()
 
 def ensure_correct_git_remote():
     """Tự động nhúng Token vào Remote URL để xác thực Git 100% tự động."""
-    token = GITHUB_TOKEN.strip()
-    if token and not token.startswith("ghp_xxxx"):
+    token = GITHUB_TOKEN
+    if token:
         correct_url = f"https://{GITHUB_USERNAME}:{token}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
     else:
         correct_url = f"https://github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
@@ -354,7 +356,7 @@ if __name__ == "__main__":
         f"===================================================================="
     )
     print(
-        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.6 (TOKEN AUTHENTICATION)      "
+        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.7 (SAFE AUTHENTICATION)      "
     )
     print(
         f"===================================================================="
