@@ -1,0 +1,20 @@
+ID: TBC-2026-0004
+Title_VI: Giấc Ngủ Trên Đá
+Title_EN: The Sleep on Stone
+Medium_VI: Sơn Dầu / Chất liệu tổng hợp Hà Giang
+Medium_EN: Oil and Indigenous Materials on Canvas
+Dimensions: 90 x 160 cm
+Year: 2026
+Price: 590.000.000 VND
+Description_VI: Một đứa trẻ sơ sinh đang ngủ mỏng manh...
+Description_EN: A fragile, sleeping infant cradled safely...
+
+====================================
+IPFS_CID: Qmacom1FRq6vjtMc4swqSQZ8zX3T4KZiBxC8DDRe1CveGn
+IPFS_URL: https://gateway.pinata.cloud/ipfs/Qmacom1FRq6vjtMc4swqSQZ8zX3T4KZiBxC8DDRe1CveGn
+STATUS: SECURED AND INJECTED TO IPFS LEDGER
+
+====================================
+IPFS_CID: Qmacom1FRq6vjtMc4swqSQZ8zX3T4KZiBxC8DDRe1CveGn
+IPFS_URL: https://gateway.pinata.cloud/ipfs/Qmacom1FRq6vjtMc4swqSQZ8zX3T4KZiBxC8DDRe1CveGn
+STATUS: SECURED AND INJECTED TO IPFS LEDGER

@@ -1,0 +1,5 @@
+[FOLDER: KHO_TAC_PHAM]
+    │
+    └── [FOLDER: TBC-2026-0004_Giac_Ngu_Tren_Da] 
+          ├── thong_tin.txt  <--- File text chứa nội dung
+          └── anh_goc.png     <--- Ảnh chụp tác phẩm (độ phân giải cao)
