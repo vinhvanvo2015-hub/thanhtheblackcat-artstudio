@@ -9,25 +9,20 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.7 (SAFE AUTHENTICATION)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.8 (SECURE AUTHENTICATION)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 
-# Cấu hình GitHub - Tự động đọc từ Biến môi trường hoặc biến tĩnh
+# Cấu hình GitHub
 GITHUB_USERNAME = "vinhvanvo2015-hub"
 GITHUB_REPO_NAME = "thanhtheblackcat-artstudio"
 
-# Lấy token từ biến môi trường GITHUB_TOKEN để tránh bị GitHub Secret Scanning chặn Push
+# Lấy các Secret/Token hoàn toàn từ Biến môi trường hệ thống
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
-
-NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "")
-
-PINATA_JWT_TOKEN = os.getenv(
-    "PINATA_JWT",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIyYWUyNDY4MC1kYzljLTRkNTQtOTY0Zi1kYzI1ODExYTIxYmIiLCJlbWFpbCI6InZpbmh2YW52boIwMTVAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmaWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleIsInNjb3BlZEtleUtleSI6IjM5NjNkZmExMTMwYWZkMzQ3NTlhIiwic2NvcGVkS2V5U2VjcmV0IjoiMDQ2ZmYwNDY3MTJhNDU4ZWIzODg5OWRhYTEzMWFjYTg0Y2I5YTkwNzk5MmY4NjMyNmM5M113Mzc5MDFhNzEwMCIsImV4cCI6MTgxOTAyMDAyNX0.EqedzH9z7kLRpy8lu2KVL21-_zH4DoR3SucXkKQh_WU",
-)
+NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "").strip()
+PINATA_JWT_TOKEN = os.getenv("PINATA_JWT", "").strip()
 
 
 def find_git_executable():
@@ -56,7 +51,7 @@ GIT_CMD = find_git_executable()
 
 
 def ensure_correct_git_remote():
-    """Tự động nhúng Token vào Remote URL để xác thực Git 100% tự động."""
+    """Tự động thiết lập Remote URL cho Git Repo."""
     token = GITHUB_TOKEN
     if token:
         correct_url = f"https://{GITHUB_USERNAME}:{token}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
@@ -216,27 +211,29 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         return shielded_image_path
 
     def upload_to_pinata_ipfs(self, image_path, artwork_id):
-        url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
-        token = "".join(PINATA_JWT_TOKEN.split())
-        headers = {"Authorization": f"Bearer {token}"}
+        if PINATA_JWT_TOKEN:
+            url = "https://api.pinata.cloud/pinning/pinFileToIPFS"
+            token = "".join(PINATA_JWT_TOKEN.split())
+            headers = {"Authorization": f"Bearer {token}"}
 
-        try:
-            safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", str(artwork_id))
-            upload_name = f"{safe_id}_secured_artwork.png"
+            try:
+                safe_id = re.sub(r"[^a-zA-Z0-9_-]", "_", str(artwork_id))
+                upload_name = f"{safe_id}_secured_artwork.png"
 
-            with open(image_path, "rb") as f:
-                files = [("file", (upload_name, f, "image/png"))]
-                response = requests.post(
-                    url, files=files, headers=headers, timeout=15
-                )
+                with open(image_path, "rb") as f:
+                    files = [("file", (upload_name, f, "image/png"))]
+                    response = requests.post(
+                        url, files=files, headers=headers, timeout=15
+                    )
 
-                if response.status_code == 200:
-                    response_data = response.json()
-                    cid = response_data["IpfsHash"]
-                    return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
-        except Exception as e:
-            print(f"[-] Lỗi Pinata IPFS: {str(e)}")
+                    if response.status_code == 200:
+                        response_data = response.json()
+                        cid = response_data["IpfsHash"]
+                        return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
+            except Exception as e:
+                print(f"[-] Lỗi Pinata IPFS: {str(e)}")
 
+        # Backup về đường dẫn local nếu không có token hoặc upload lỗi
         folder_name = os.path.basename(os.path.dirname(image_path))
         web_relative_path = f"./{folder_name}/web_secured_display.png"
         with open(image_path, "rb") as f:
@@ -285,7 +282,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             return False
 
     def deploy_to_netlify(self, title):
-        if NETLIFY_BUILD_HOOK_URL.strip():
+        if NETLIFY_BUILD_HOOK_URL:
             try:
                 res = requests.post(NETLIFY_BUILD_HOOK_URL, timeout=10)
                 if res.status_code in [200, 202]:
@@ -356,7 +353,7 @@ if __name__ == "__main__":
         f"===================================================================="
     )
     print(
-        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.7 (SAFE AUTHENTICATION)      "
+        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.8 (SECURE AUTHENTICATION)    "
     )
     print(
         f"===================================================================="
