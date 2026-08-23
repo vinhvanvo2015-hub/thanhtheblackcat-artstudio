@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.0 (IPFS & NETLIFY AUTO-SYNC)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.2 (FULL AUTO SYNC & RECOVERY)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
@@ -152,9 +152,10 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
 
     def activate_arttech_shield(self, original_image, folder_path):
         shielded_image_path = os.path.join(folder_path, "web_secured_display.png")
-        with open(original_image, 'rb') as src, open(shielded_image_path, 'wb') as dst:
-            dst.write(src.read())
-        print(f"[✓] Đã tạo tệp ảnh hiển thị: {shielded_image_path}")
+        if not os.path.exists(shielded_image_path):
+            with open(original_image, 'rb') as src, open(shielded_image_path, 'wb') as dst:
+                dst.write(src.read())
+            print(f"[✓] Đã tạo tệp ảnh hiển thị: {shielded_image_path}")
         return shielded_image_path
 
     def upload_to_pinata_ipfs(self, image_path, artwork_id):
@@ -274,6 +275,22 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         except Exception as e:
             print(f"[-] Lỗi ghi file text: {str(e)}")
 
+def scan_and_process_existing_folders(handler):
+    """Tự động kiểm tra và quét lại các thư mục tranh chưa upload IPFS thành công."""
+    print("[*] Đang tự động kiểm tra các thư mục tác phẩm hiện có...")
+    for item in os.listdir(WATCH_DIRECTORY):
+        item_path = os.path.join(WATCH_DIRECTORY, item)
+        if os.path.isdir(item_path) and not item.startswith("."):
+            text_file = os.path.join(item_path, "thong_tin.txt")
+            if os.path.exists(text_file):
+                with open(text_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                # Nếu chưa từng upload thành công IPFS
+                if "IPFS_CID: bafy" not in content:
+                    print(f"[+] Tìm thấy tác phẩm chưa sync IPFS: {item_path}")
+                    handler.processed_folders.add(item_path)
+                    handler.process_artwork_folder(item_path)
+
 if __name__ == "__main__":
     if not os.path.exists(WATCH_DIRECTORY):
         os.makedirs(WATCH_DIRECTORY)
@@ -281,12 +298,16 @@ if __name__ == "__main__":
     ensure_correct_git_remote()
 
     event_handler = ArtworkPipelineHandler()
+    
+    # Chạy quét tự động khôi phục dữ liệu chưa upload
+    scan_and_process_existing_folders(event_handler)
+
     observer = Observer()
     observer.schedule(event_handler, path=WATCH_DIRECTORY, recursive=True)
     observer.start()
 
     print(f"====================================================================")
-    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.0 (IPFS & NETLIFY SYNC)     ")
+    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.2 (FULL AUTO SYNC)          ")
     print(f"====================================================================")
     print(f"[*] Đang chạy ngầm giám sát thư mục: {WATCH_DIRECTORY}\n")
 
