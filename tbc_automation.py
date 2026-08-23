@@ -15,14 +15,14 @@ WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 
-# 1. Điền tên Repository thực tế trên GitHub của bạn vào đây (VD: art-studio hoặc thanhtheblackcat-artstudio)
+# Cấu hình GitHub chính xác
 GITHUB_USERNAME = "vinhvanvo2015-hub"
-GITHUB_REPO_NAME = "art-studio"  # <--- Thay đúng tên Repo của bạn trên GitHub vào đây
+GITHUB_REPO_NAME = "thanhtheblackcat-artstudio"
 
-# 2. Dán URL Build Hook của Netlify vào đây (Nếu có)
+# URL Build Hook của Netlify (Nếu có)
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "")
 
-# 3. Pinata Credentials
+# Pinata Credentials
 PINATA_JWT_TOKEN = os.getenv(
     "PINATA_JWT",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIyYWUyNDY4MC1kYzljLTRkNTQtOTY0Zi1kYzI1ODExYTIxYmIiLCJlbWFpbCI6InZpbmh2YW52boIwMTVAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmaWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleIsInNjb3BlZEtleUtleSI6IjM5NjNkZmExMTMwYWZkMzQ3NTlhIiwic2NvcGVkS2V5U2VjcmV0IjoiMDQ2ZmYwNDY3MTJhNDU4ZWIzODg5OWRhYTEzMWFjYTg0Y2I5YTkwNzk5MmY4NjMyNmM5M113Mzc5MDFhNzEwMCIsImV4cCI6MTgxOTAyMDAyNX0.EqedzH9z7kLRpy8lu2KVL21-_zH4DoR3SucXkKQh_WU",
@@ -55,7 +55,7 @@ GIT_CMD = find_git_executable()
 
 
 def ensure_correct_git_remote():
-    """Tự động kiểm tra và cấu hình đúng Remote URL GitHub mỗi khi chạy hệ thống."""
+    """Tự động kiểm tra và kết nối đúng Remote URL GitHub mỗi khi chạy."""
     correct_url = f"https://github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
     try:
         subprocess.run(
@@ -65,7 +65,7 @@ def ensure_correct_git_remote():
             check=True,
             capture_output=True,
         )
-        print(f"[✓] Cấu hình Git Remote chuẩn: {correct_url}")
+        print(f"[✓] Đã kết nối Remote GitHub: {correct_url}")
     except Exception as e:
         print(f"[-] Cảnh báo thiết lập Git Remote: {str(e)}")
 
