@@ -1,0 +1,20 @@
+ID: TBC-2026-0004
+Title_VI: Giấc Ngủ Trên Đá
+Title_EN: The Sleep on Stone
+Medium_VI: Sơn Dầu / Chất liệu tổng hợp Hà Giang
+Medium_EN: Oil and Indigenous Materials on Canvas
+Dimensions: 90 x 160 cm
+Year: 2026
+Price: 590.000.000 VND
+Description_VI: Một đứa trẻ sơ sinh đang ngủ mỏng manh...
+Description_EN: A fragile, sleeping infant cradled safely...
+
+====================================
+
+
+====================================
+
+
+====================================
+IPFS_CID: LOCAL_82ddcbd63b2ac4f0
+IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan123483510312536/web_secured_display.png
