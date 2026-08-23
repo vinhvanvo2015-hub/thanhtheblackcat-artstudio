@@ -9,22 +9,19 @@ from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.5
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v9.6 (FIX AUTHENTICATION)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 
-# 1. Cấu hình GitHub - Điền Personal Access Token nếu Repository là Private
+# Cấu hình GitHub - ĐÃ TỰ ĐỘNG NHÚNG TOKEN ĐỂ BỎ QUA ĐĂNG NHẬP
 GITHUB_USERNAME = "vinhvanvo2015-hub"
 GITHUB_REPO_NAME = "thanhtheblackcat-artstudio"
-# Tạo token tại: GitHub -> Settings -> Developer Settings -> Personal Access Tokens (classic)
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")  # Dán chuỗi ghp_xxxx vào đây nếu cần
+GITHUB_TOKEN = "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"
 
-# 2. Dán URL Build Hook của Netlify vào đây (Nếu có)
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "")
 
-# 3. Pinata Credentials
 PINATA_JWT_TOKEN = os.getenv(
     "PINATA_JWT",
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIyYWUyNDY4MC1kYzljLTRkNTQtOTY0Zi1kYzI1ODExYTIxYmIiLCJlbWFpbCI6InZpbmh2YW52boIwMTVAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmaWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleIsInNjb3BlZEtleUtleSI6IjM5NjNkZmExMTMwYWZkMzQ3NTlhIiwic2NvcGVkS2V5U2VjcmV0IjoiMDQ2ZmYwNDY3MTJhNDU4ZWIzODg5OWRhYTEzMWFjYTg0Y2I5YTkwNzk5MmY4NjMyNmM5M113Mzc5MDFhNzEwMCIsImV4cCI6MTgxOTAyMDAyNX0.EqedzH9z7kLRpy8lu2KVL21-_zH4DoR3SucXkKQh_WU",
@@ -57,36 +54,24 @@ GIT_CMD = find_git_executable()
 
 
 def ensure_correct_git_remote():
-    """Tự động kiểm tra và cấu hình đúng Remote URL GitHub."""
-    if GITHUB_TOKEN.strip():
-        correct_url = f"https://{GITHUB_USERNAME}:{GITHUB_TOKEN.strip()}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
+    """Tự động nhúng Token vào Remote URL để xác thực Git 100% tự động."""
+    token = GITHUB_TOKEN.strip()
+    if token and not token.startswith("ghp_xxxx"):
+        correct_url = f"https://{GITHUB_USERNAME}:{token}@github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
     else:
         correct_url = f"https://github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
 
     try:
-        # Kiểm tra xem remote origin hiện tại là gì
-        res = subprocess.run(
-            f'"{GIT_CMD}" remote get-url origin',
+        subprocess.run(
+            f'"{GIT_CMD}" remote set-url origin {correct_url}',
             cwd=PROJECT_WEB_DIR,
             shell=True,
+            check=True,
             capture_output=True,
-            text=True,
         )
-        current_url = res.stdout.strip()
-
-        if current_url != correct_url:
-            subprocess.run(
-                f'"{GIT_CMD}" remote set-url origin {correct_url}',
-                cwd=PROJECT_WEB_DIR,
-                shell=True,
-                check=True,
-                capture_output=True,
-            )
-            print(f"[✓] Đã cập nhật Remote GitHub: https://github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git")
-        else:
-            print(f"[✓] Remote GitHub đã sẵn sàng.")
+        print(f"[✓] Cấu hình Remote Git thành công!")
     except Exception as e:
-        print(f"[-] Cảnh báo thiết lập Git Remote: {str(e)}")
+        print(f"[-] Lỗi kết nối Git Remote: {str(e)}")
 
 
 class ArtworkPipelineHandler(FileSystemEventHandler):
@@ -369,7 +354,7 @@ if __name__ == "__main__":
         f"===================================================================="
     )
     print(
-        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.5 (NETLIFY DIRECT SYNC)      "
+        f"  THANHTHEBLACKCAT ARTTECH PIPELINE v9.6 (TOKEN AUTHENTICATION)      "
     )
     print(
         f"===================================================================="
