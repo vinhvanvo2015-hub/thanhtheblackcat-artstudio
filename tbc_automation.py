@@ -15,13 +15,17 @@ WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 WEB_DATA_JSON_PATH = os.path.join(PROJECT_WEB_DIR, "artworks_data.json")
 
-# 1. Dán URL Build Hook của Netlify vào đây (Nếu có)
+# 1. Điền tên Repository thực tế trên GitHub của bạn vào đây (VD: art-studio hoặc thanhtheblackcat-artstudio)
+GITHUB_USERNAME = "vinhvanvo2015-hub"
+GITHUB_REPO_NAME = "art-studio"  # <--- Thay đúng tên Repo của bạn trên GitHub vào đây
+
+# 2. Dán URL Build Hook của Netlify vào đây (Nếu có)
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "")
 
-# 2. Pinata Credentials (Nên lưu trong biến môi trường PINATA_JWT)
+# 3. Pinata Credentials
 PINATA_JWT_TOKEN = os.getenv(
     "PINATA_JWT",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIyYWUyNDY4MC1kYzljLTRkNTQtOTY0Zi1kYzI1ODExYTIxYmIiLCJlbWFpbCI6InZpbmh2YW52boIwMTVAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmaWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjM5NjNkZmExMTMwYWZkMzQ3NTlhIiwic2NvcGVkS2V5U2VjcmV0IjoiMDQ2ZmYwNDY3MTJhNDU4ZWIzODg5OWRhYTEzMWFjYTg0Y2I5YTkwNzk5MmY4NjMyNmM5M113Mzc5MDFhNzEwMCIsImV4cCI6MTgxOTAyMDAyNX0.EqedzH9z7kLRpy8lu2KVL21-_zH4DoR3SucXkKQh_WU",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIyYWUyNDY4MC1kYzljLTRkNTQtOTY0Zi1kYzI1ODExYTIxYmIiLCJlbWFpbCI6InZpbmh2YW52boIwMTVAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmaWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleIsInNjb3BlZEtleUtleSI6IjM5NjNkZmExMTMwYWZkMzQ3NTlhIiwic2NvcGVkS2V5U2VjcmV0IjoiMDQ2ZmYwNDY3MTJhNDU4ZWIzODg5OWRhYTEzMWFjYTg0Y2I5YTkwNzk5MmY4NjMyNmM5M113Mzc5MDFhNzEwMCIsImV4cCI6MTgxOTAyMDAyNX0.EqedzH9z7kLRpy8lu2KVL21-_zH4DoR3SucXkKQh_WU",
 )
 
 
@@ -48,6 +52,22 @@ def find_git_executable():
 
 
 GIT_CMD = find_git_executable()
+
+
+def ensure_correct_git_remote():
+    """Tự động kiểm tra và cấu hình đúng Remote URL GitHub mỗi khi chạy hệ thống."""
+    correct_url = f"https://github.com/{GITHUB_USERNAME}/{GITHUB_REPO_NAME}.git"
+    try:
+        subprocess.run(
+            f'"{GIT_CMD}" remote set-url origin {correct_url}',
+            cwd=PROJECT_WEB_DIR,
+            shell=True,
+            check=True,
+            capture_output=True,
+        )
+        print(f"[✓] Cấu hình Git Remote chuẩn: {correct_url}")
+    except Exception as e:
+        print(f"[-] Cảnh báo thiết lập Git Remote: {str(e)}")
 
 
 class ArtworkPipelineHandler(FileSystemEventHandler):
@@ -146,7 +166,6 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Bỏ phần IPFS đã ghi cũ nếu có để tránh parse trùng
             if "====================================" in content:
                 content = content.split("====================================")[
                     0
@@ -180,7 +199,9 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             return None
 
     def activate_arttech_shield(self, original_image, folder_path):
-        shielded_image_path = os.path.join(folder_path, "web_secured_display.png")
+        shielded_image_path = os.path.join(
+            folder_path, "web_secured_display.png"
+        )
         with open(original_image, "rb") as src, open(
             shielded_image_path, "wb"
         ) as dst:
@@ -210,7 +231,6 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
         except Exception as e:
             print(f"[-] Lỗi Pinata IPFS: {str(e)}")
 
-        # Fallback về đường dẫn tĩnh tương đối
         folder_name = os.path.basename(os.path.dirname(image_path))
         web_relative_path = f"./{folder_name}/web_secured_display.png"
         with open(image_path, "rb") as f:
@@ -280,7 +300,7 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             )
 
             push_res = subprocess.run(
-                f'"{GIT_CMD}" push origin HEAD',
+                f'"{GIT_CMD}" push origin HEAD --force',
                 cwd=cwd,
                 shell=True,
                 capture_output=True,
@@ -301,7 +321,6 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
 
     def save_ipfs_to_local_text(self, file_path, ipfs_link, ipfs_cid):
         try:
-            # Kiểm tra xem file đã có IPFS_CID chưa để tránh ghi lặp lại
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
@@ -320,6 +339,8 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
 if __name__ == "__main__":
     if not os.path.exists(WATCH_DIRECTORY):
         os.makedirs(WATCH_DIRECTORY)
+
+    ensure_correct_git_remote()
 
     event_handler = ArtworkPipelineHandler()
     observer = Observer()
