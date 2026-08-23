@@ -36,3 +36,18 @@ STATUS: SECURED AND INJECTED TO IPFS LEDGER
 IPFS_CID: QmLocalManualFix1787485798
 IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan1234/web_secured_display.png
 STATUS: SECURED AND INJECTED TO IPFS LEDGER
+
+====================================
+IPFS_CID: QmLocalFix_82ddcbd63b2ac4f065c0fbe47700f3a3
+IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan12348/web_secured_display.png
+STATUS: SECURED AND INJECTED TO IPFS LEDGER
+
+====================================
+IPFS_CID: QmLocalFix_82ddcbd63b2ac4f065c0fbe47700f3a3
+IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan123483/web_secured_display.png
+STATUS: SECURED AND INJECTED TO IPFS LEDGER
+
+====================================
+IPFS_CID: QmLocalFix_82ddcbd63b2ac4f065c0fbe47700f3a3
+IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan1234835/web_secured_display.png
+STATUS: SECURED AND INJECTED TO IPFS LEDGER
