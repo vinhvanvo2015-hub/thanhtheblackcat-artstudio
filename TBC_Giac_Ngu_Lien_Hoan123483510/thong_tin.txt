@@ -60,3 +60,7 @@ STATUS: SECURED AND INJECTED TO IPFS LEDGER
 ====================================
 IPFS_CID: LOCAL_82ddcbd63b2ac4f0
 IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan12348351/web_secured_display.png
+
+====================================
+IPFS_CID: LOCAL_82ddcbd63b2ac4f0
+IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan123483510/web_secured_display.png
