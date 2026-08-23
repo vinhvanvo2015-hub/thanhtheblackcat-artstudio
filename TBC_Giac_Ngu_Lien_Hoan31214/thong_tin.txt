@@ -1,5 +1,5 @@
 ID: TBC-2026-0004
-Title_VI: Giấc Ngủ Trên Đá
+Title_VI: Giấc Ngủ Trên mi
 Title_EN: The Sleep on Stone
 Medium_VI: Sơn Dầu / Chất liệu tổng hợp Hà Giang
 Medium_EN: Oil and Indigenous Materials on Canvas
