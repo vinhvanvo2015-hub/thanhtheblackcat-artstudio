@@ -9,7 +9,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 # =====================================================================
-# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.2 (FULL AUTO SYNC & RECOVERY)
+# CONFIGURATION - CẤU HÌNH HỆ THỐNG v10.3 (DIAGNOSTIC & PINATA SYNC)
 # =====================================================================
 WATCH_DIRECTORY = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
 PROJECT_WEB_DIR = r"D:\Thanhtheblackcat-Art\QUẢN LÝ TÁC PHẨM"
@@ -24,7 +24,9 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "").strip()
 NETLIFY_BUILD_HOOK_URL = os.getenv("NETLIFY_BUILD_HOOK_URL", "").strip()
 PINATA_JWT_TOKEN = os.getenv("PINATA_JWT", "").strip()
 
-# Fallback Key Pinata (nếu chưa gán PINATA_JWT trong máy)
+# =====================================================================
+# LƯU Ý: Anh dán API Secret Key lấy từ Pinata vào dòng PINATA_SECRET_KEY dưới đây!
+# =====================================================================
 PINATA_API_KEY = os.getenv("PINATA_API_KEY", "3963dfa1130afd34759a").strip()
 PINATA_SECRET_KEY = os.getenv("PINATA_SECRET_KEY", "").strip()
 
@@ -174,8 +176,10 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
                     if res.status_code == 200:
                         cid = res.json()["IpfsHash"]
                         return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
+                    else:
+                        print(f"[-] Pinata JWT Error ({res.status_code}): {res.text}")
             except Exception as e:
-                print(f"[-] Lỗi Pinata JWT: {str(e)}")
+                print(f"[-] Lỗi kết nối Pinata JWT: {str(e)}")
 
         # Phương án 2: Sử dụng API Key & Secret Key
         if PINATA_API_KEY and PINATA_SECRET_KEY:
@@ -190,8 +194,12 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
                     if res.status_code == 200:
                         cid = res.json()["IpfsHash"]
                         return f"https://gateway.pinata.cloud/ipfs/{cid}", cid
+                    else:
+                        print(f"[-] Pinata API Key Error ({res.status_code}): {res.text}")
             except Exception as e:
-                print(f"[-] Lỗi Pinata API Key: {str(e)}")
+                print(f"[-] Lỗi kết nối Pinata API Key: {str(e)}")
+        else:
+            print("[-] CẢNH BÁO: Thiếu PINATA_SECRET_KEY hoặc PINATA_JWT trong cấu hình!")
 
         # Backup về đường dẫn local nếu không thể kết nối Pinata
         folder_name = os.path.basename(os.path.dirname(image_path))
@@ -276,7 +284,6 @@ class ArtworkPipelineHandler(FileSystemEventHandler):
             print(f"[-] Lỗi ghi file text: {str(e)}")
 
 def scan_and_process_existing_folders(handler):
-    """Tự động kiểm tra và quét lại các thư mục tranh chưa upload IPFS thành công."""
     print("[*] Đang tự động kiểm tra các thư mục tác phẩm hiện có...")
     for item in os.listdir(WATCH_DIRECTORY):
         item_path = os.path.join(WATCH_DIRECTORY, item)
@@ -285,10 +292,8 @@ def scan_and_process_existing_folders(handler):
             if os.path.exists(text_file):
                 with open(text_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                # Nếu chưa từng upload thành công IPFS
                 if "IPFS_CID: bafy" not in content:
-                    print(f"[+] Tìm thấy tác phẩm chưa sync IPFS: {item_path}")
-                    handler.processed_folders.add(item_path)
+                    print(f"[+] Phát hiện thư mục chưa tải lên IPFS: {item_path}")
                     handler.process_artwork_folder(item_path)
 
 if __name__ == "__main__":
@@ -298,8 +303,6 @@ if __name__ == "__main__":
     ensure_correct_git_remote()
 
     event_handler = ArtworkPipelineHandler()
-    
-    # Chạy quét tự động khôi phục dữ liệu chưa upload
     scan_and_process_existing_folders(event_handler)
 
     observer = Observer()
@@ -307,7 +310,7 @@ if __name__ == "__main__":
     observer.start()
 
     print(f"====================================================================")
-    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.2 (FULL AUTO SYNC)          ")
+    print(f"  THANHTHEBLACKCAT ARTTECH PIPELINE v10.3 (DIAGNOSTIC & PINATA)     ")
     print(f"====================================================================")
     print(f"[*] Đang chạy ngầm giám sát thư mục: {WATCH_DIRECTORY}\n")
 
