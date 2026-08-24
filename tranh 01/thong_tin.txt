@@ -8,13 +8,5 @@ Year: 2026
 Price: 590.000.000 VND
 Description_VI: Một đứa trẻ sơ sinh đang ngủ mỏng manh...
 Description_EN: A fragile, sleeping infant cradled safely...
-
-====================================
-
-
-====================================
-
-
-====================================
 IPFS_CID: LOCAL_82ddcbd63b2ac4f0
 IPFS_URL: ./TBC_Giac_Ngu_Lien_Hoan123483510312536/web_secured_display.png
